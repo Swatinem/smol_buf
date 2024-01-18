@@ -1,8 +1,7 @@
+use alloc::sync::Arc;
 use core::num::NonZeroU8;
 use core::slice;
 use core::{mem, ops};
-
-use alloc::sync::Arc;
 
 #[repr(transparent)]
 pub struct Buf24(Buf24Inner);

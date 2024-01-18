@@ -1,11 +1,13 @@
-use alloc::{borrow::Cow, boxed::Box, string::String, sync::Arc};
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::sync::Arc;
 use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::convert::Infallible;
-use core::mem;
 use core::ops::Deref;
 use core::str::{from_utf8_unchecked, FromStr};
-use core::{fmt, hash, iter};
+use core::{fmt, hash, iter, mem};
 
 use crate::buf24::{Buf24, INLINE_CAP};
 
