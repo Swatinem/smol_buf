@@ -148,7 +148,7 @@ impl Buf24 {
 
         if self.tag() == Tag::Inline {
             let inline: &Buf24Inline = unsafe { mem::transmute(self) };
-            return &inline.buf[..len];
+            return unsafe { inline.buf.get_unchecked(..len) };
         }
 
         let data = self.0.ptr as usize as *const u8;
