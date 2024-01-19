@@ -55,26 +55,31 @@ fn check_props(std_str: &str, smol: Str24) -> Result<(), proptest::test_runner::
 
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn roundtrip(s: String) {
         check_props(s.as_str(), Str24::new(s.clone()))?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn roundtrip_spaces(s in r"( )*") {
         check_props(s.as_str(), Str24::new(s.clone()))?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn roundtrip_newlines(s in r"\n*") {
         check_props(s.as_str(), Str24::new(s.clone()))?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn roundtrip_ws(s in r"( |\n)*") {
         check_props(s.as_str(), Str24::new(s.clone()))?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn from_string_iter(slices in proptest::collection::vec(".*", 1..100)) {
         let string: String = slices.iter().map(|x| x.as_str()).collect();
         let smol: Str24 = slices.into_iter().collect();
@@ -82,6 +87,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn from_str_iter(slices in proptest::collection::vec(".*", 1..100)) {
         let string: String = slices.iter().map(|x| x.as_str()).collect();
         let smol: Str24 = slices.iter().collect();

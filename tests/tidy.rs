@@ -32,6 +32,7 @@ fn run(cmd: &str, dir: impl AsRef<Path>) -> Result<(), ()> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn check_code_formatting() {
     let dir = project_root();
     if run("rustfmt +stable --version", &dir).is_err() {
