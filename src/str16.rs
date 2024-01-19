@@ -9,43 +9,43 @@ use core::ops::Deref;
 use core::str::{from_utf8_unchecked, FromStr};
 use core::{fmt, hash, iter, mem};
 
-use crate::buf24::{Buf24, INLINE_CAP};
+use crate::buf16::{Buf16, INLINE_CAP};
 
-/// A `Str24` is a string type that has the following properties:
+/// A `Str16` is a string type that has the following properties:
 ///
-/// * `size_of::<Str24>() == 24` (therefor `== size_of::<String>()` on 64 bit platforms)
-/// * `size_of::<Option<Str24>>() == size_of::<Str24>()`
+/// * `size_of::<Str16>() == 16` (therefor `== size_of::<Arc<str>>()` on 64 bit platforms)
+/// * `size_of::<Option<Str16>>() == size_of::<Str16>()`
 /// * `Clone` is `O(1)`
-/// * Strings are stack-allocated if they are up to 23 bytes long
+/// * Strings are stack-allocated if they are up to 15 bytes long
 /// * If a string does not satisfy the aforementioned conditions, it is heap-allocated
-/// * Additionally, a `Str24` can be explicitly created from a `&'static str` without allocation
+/// * Additionally, a `Str16` can be explicitly created from a `&'static str` without allocation
 ///
-/// Unlike `String`, however, `Str24` is immutable.
+/// Unlike `String`, however, `Str16` is immutable.
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct Str24(Buf24);
+pub struct Str16(Buf16);
 
-impl Str24 {
-    /// Constructs inline variant of `Str24`.
+impl Str16 {
+    /// Constructs inline variant of `Str16`.
     ///
     /// Panics if `text.len() > 23`.
     #[inline]
-    pub const fn new_inline(text: &str) -> Str24 {
-        Self(Buf24::new_inline(text.as_bytes()))
+    pub const fn new_inline(text: &str) -> Str16 {
+        Self(Buf16::new_inline(text.as_bytes()))
     }
 
-    /// Constructs a `Str24` from a statically allocated string.
+    /// Constructs a `Str16` from a statically allocated string.
     ///
     /// This never allocates.
     #[inline]
-    pub fn new_static(text: &'static str) -> Str24 {
-        Self(Buf24::new_static(text.as_bytes()))
+    pub fn new_static(text: &'static str) -> Str16 {
+        Self(Buf16::new_static(text.as_bytes()))
     }
 
-    pub fn new<T>(text: T) -> Str24
+    pub fn new<T>(text: T) -> Str16
     where
         T: AsRef<str>,
     {
-        Str24(Buf24::new(text.as_ref().as_bytes()))
+        Str16(Buf16::new(text.as_ref().as_bytes()))
     }
 
     #[inline(always)]
@@ -81,11 +81,11 @@ impl Str24 {
         if len <= INLINE_CAP {
             Self::new_inline(&arc)
         } else {
-            Self(Buf24::from_arc(len, unsafe { mem::transmute(arc) }))
+            Self(Buf16::from_arc(len, unsafe { mem::transmute(arc) }))
         }
     }
 
-    fn from_char_iter<I: iter::Iterator<Item = char>>(mut iter: I) -> Str24 {
+    fn from_char_iter<I: iter::Iterator<Item = char>>(mut iter: I) -> Str16 {
         let (min_size, _) = iter.size_hint();
         if min_size > INLINE_CAP {
             let heap: String = iter.collect();
@@ -107,10 +107,10 @@ impl Str24 {
             ch.encode_utf8(&mut buf[len..]);
             len += size;
         }
-        Str24(Buf24::new_inline(&buf[..len]))
+        Str16(Buf16::new_inline(&buf[..len]))
     }
 
-    fn from_str_iter<T>(mut iter: impl Iterator<Item = T>) -> Str24
+    fn from_str_iter<T>(mut iter: impl Iterator<Item = T>) -> Str16
     where
         T: AsRef<str>,
         String: iter::Extend<T>,
@@ -125,16 +125,16 @@ impl Str24 {
                 heap.push_str(core::str::from_utf8(&buf[..len]).unwrap());
                 heap.push_str(slice);
                 heap.extend(iter);
-                return Str24::new(&heap);
+                return Str16::new(&heap);
             }
             buf[len..][..size].copy_from_slice(slice.as_bytes());
             len += size;
         }
-        Str24(Buf24::new_inline(&buf[..len]))
+        Str16(Buf16::new_inline(&buf[..len]))
     }
 }
 
-impl Deref for Str24 {
+impl Deref for Str16 {
     type Target = str;
 
     #[inline(always)]
@@ -143,167 +143,167 @@ impl Deref for Str24 {
     }
 }
 
-impl PartialEq<str> for Str24 {
+impl PartialEq<str> for Str16 {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
     }
 }
 
-impl PartialEq<Str24> for str {
-    fn eq(&self, other: &Str24) -> bool {
+impl PartialEq<Str16> for str {
+    fn eq(&self, other: &Str16) -> bool {
         other == self
     }
 }
 
-impl<'a> PartialEq<&'a str> for Str24 {
+impl<'a> PartialEq<&'a str> for Str16 {
     fn eq(&self, other: &&'a str) -> bool {
         self == *other
     }
 }
 
-impl<'a> PartialEq<Str24> for &'a str {
-    fn eq(&self, other: &Str24) -> bool {
+impl<'a> PartialEq<Str16> for &'a str {
+    fn eq(&self, other: &Str16) -> bool {
         *self == other
     }
 }
 
-impl PartialEq<String> for Str24 {
+impl PartialEq<String> for Str16 {
     fn eq(&self, other: &String) -> bool {
         self.as_str() == other
     }
 }
 
-impl PartialEq<Str24> for String {
-    fn eq(&self, other: &Str24) -> bool {
+impl PartialEq<Str16> for String {
+    fn eq(&self, other: &Str16) -> bool {
         other == self
     }
 }
 
-impl<'a> PartialEq<&'a String> for Str24 {
+impl<'a> PartialEq<&'a String> for Str16 {
     fn eq(&self, other: &&'a String) -> bool {
         self == *other
     }
 }
 
-impl<'a> PartialEq<Str24> for &'a String {
-    fn eq(&self, other: &Str24) -> bool {
+impl<'a> PartialEq<Str16> for &'a String {
+    fn eq(&self, other: &Str16) -> bool {
         *self == other
     }
 }
 
-impl Ord for Str24 {
-    fn cmp(&self, other: &Str24) -> Ordering {
+impl Ord for Str16 {
+    fn cmp(&self, other: &Str16) -> Ordering {
         self.as_str().cmp(other.as_str())
     }
 }
 
-impl PartialOrd for Str24 {
-    fn partial_cmp(&self, other: &Str24) -> Option<Ordering> {
+impl PartialOrd for Str16 {
+    fn partial_cmp(&self, other: &Str16) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl hash::Hash for Str24 {
+impl hash::Hash for Str16 {
     fn hash<H: hash::Hasher>(&self, hasher: &mut H) {
         self.as_str().hash(hasher);
     }
 }
 
-impl fmt::Debug for Str24 {
+impl fmt::Debug for Str16 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.as_str(), f)
     }
 }
 
-impl fmt::Display for Str24 {
+impl fmt::Display for Str16 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(self.as_str(), f)
     }
 }
 
-impl iter::FromIterator<char> for Str24 {
-    fn from_iter<I: iter::IntoIterator<Item = char>>(iter: I) -> Str24 {
+impl iter::FromIterator<char> for Str16 {
+    fn from_iter<I: iter::IntoIterator<Item = char>>(iter: I) -> Str16 {
         Self::from_char_iter(iter.into_iter())
     }
 }
 
-impl iter::FromIterator<String> for Str24 {
-    fn from_iter<I: iter::IntoIterator<Item = String>>(iter: I) -> Str24 {
+impl iter::FromIterator<String> for Str16 {
+    fn from_iter<I: iter::IntoIterator<Item = String>>(iter: I) -> Str16 {
         Self::from_str_iter(iter.into_iter())
     }
 }
 
-impl<'a> iter::FromIterator<&'a String> for Str24 {
-    fn from_iter<I: iter::IntoIterator<Item = &'a String>>(iter: I) -> Str24 {
+impl<'a> iter::FromIterator<&'a String> for Str16 {
+    fn from_iter<I: iter::IntoIterator<Item = &'a String>>(iter: I) -> Str16 {
         Self::from_str_iter(iter.into_iter().map(|x| x.as_str()))
     }
 }
 
-impl<'a> iter::FromIterator<&'a str> for Str24 {
-    fn from_iter<I: iter::IntoIterator<Item = &'a str>>(iter: I) -> Str24 {
+impl<'a> iter::FromIterator<&'a str> for Str16 {
+    fn from_iter<I: iter::IntoIterator<Item = &'a str>>(iter: I) -> Str16 {
         Self::from_str_iter(iter.into_iter())
     }
 }
 
-impl AsRef<str> for Str24 {
+impl AsRef<str> for Str16 {
     #[inline(always)]
     fn as_ref(&self) -> &str {
         self.as_str()
     }
 }
 
-impl From<&str> for Str24 {
+impl From<&str> for Str16 {
     #[inline]
-    fn from(s: &str) -> Str24 {
-        Str24::new(s)
+    fn from(s: &str) -> Str16 {
+        Str16::new(s)
     }
 }
 
-impl From<&mut str> for Str24 {
+impl From<&mut str> for Str16 {
     #[inline]
-    fn from(s: &mut str) -> Str24 {
-        Str24::new(s)
+    fn from(s: &mut str) -> Str16 {
+        Str16::new(s)
     }
 }
 
-impl From<&String> for Str24 {
+impl From<&String> for Str16 {
     #[inline]
-    fn from(s: &String) -> Str24 {
-        Str24::new(s)
+    fn from(s: &String) -> Str16 {
+        Str16::new(s)
     }
 }
 
-impl From<String> for Str24 {
+impl From<String> for Str16 {
     #[inline(always)]
     fn from(text: String) -> Self {
         Self::new(text)
     }
 }
 
-impl From<Box<str>> for Str24 {
+impl From<Box<str>> for Str16 {
     #[inline]
-    fn from(s: Box<str>) -> Str24 {
-        Str24::new(s)
+    fn from(s: Box<str>) -> Str16 {
+        Str16::new(s)
     }
 }
 
-impl From<Arc<str>> for Str24 {
+impl From<Arc<str>> for Str16 {
     #[inline]
-    fn from(s: Arc<str>) -> Str24 {
+    fn from(s: Arc<str>) -> Str16 {
         Self::from_arc(s)
     }
 }
 
-impl<'a> From<Cow<'a, str>> for Str24 {
+impl<'a> From<Cow<'a, str>> for Str16 {
     #[inline]
-    fn from(s: Cow<'a, str>) -> Str24 {
-        Str24::new(s)
+    fn from(s: Cow<'a, str>) -> Str16 {
+        Str16::new(s)
     }
 }
 
-impl From<Str24> for Arc<str> {
+impl From<Str16> for Arc<str> {
     #[inline(always)]
-    fn from(text: Str24) -> Self {
+    fn from(text: Str16) -> Self {
         if let Some(arc) = text.0.as_arc() {
             mem::forget(text);
             return unsafe { mem::transmute(arc) };
@@ -312,34 +312,34 @@ impl From<Str24> for Arc<str> {
     }
 }
 
-impl From<Str24> for String {
+impl From<Str16> for String {
     #[inline(always)]
-    fn from(text: Str24) -> Self {
+    fn from(text: Str16) -> Self {
         text.as_str().into()
     }
 }
 
-impl Borrow<str> for Str24 {
+impl Borrow<str> for Str16 {
     #[inline(always)]
     fn borrow(&self) -> &str {
         self.as_str()
     }
 }
 
-impl FromStr for Str24 {
+impl FromStr for Str16 {
     type Err = Infallible;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Str24, Self::Err> {
-        Ok(Str24::from(s))
+    fn from_str(s: &str) -> Result<Str16, Self::Err> {
+        Ok(Str16::from(s))
     }
 }
 
 #[cfg(feature = "arbitrary")]
-impl<'a> arbitrary::Arbitrary<'a> for Str24 {
+impl<'a> arbitrary::Arbitrary<'a> for Str16 {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> Result<Self, arbitrary::Error> {
         let s = <&str>::arbitrary(u)?;
-        Ok(Str24::new(s))
+        Ok(Str16::new(s))
     }
 }
 
@@ -351,17 +351,17 @@ mod serde {
 
     use serde::de::{Deserializer, Error, Unexpected, Visitor};
 
-    use crate::Str24;
+    use crate::Str16;
 
     // https://github.com/serde-rs/serde/blob/629802f2abfd1a54a6072992888fea7ca5bc209f/serde/src/private/de.rs#L56-L125
-    fn str24<'de: 'a, 'a, D>(deserializer: D) -> Result<Str24, D::Error>
+    fn str16<'de: 'a, 'a, D>(deserializer: D) -> Result<Str16, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct Str24Visitor;
+        struct Str16Visitor;
 
-        impl<'a> Visitor<'a> for Str24Visitor {
-            type Value = Str24;
+        impl<'a> Visitor<'a> for Str16Visitor {
+            type Value = Str16;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a string")
@@ -371,21 +371,21 @@ mod serde {
             where
                 E: Error,
             {
-                Ok(Str24::from(v))
+                Ok(Str16::from(v))
             }
 
             fn visit_borrowed_str<E>(self, v: &'a str) -> Result<Self::Value, E>
             where
                 E: Error,
             {
-                Ok(Str24::from(v))
+                Ok(Str16::from(v))
             }
 
             fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
             where
                 E: Error,
             {
-                Ok(Str24::from(v))
+                Ok(Str16::from(v))
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
@@ -393,7 +393,7 @@ mod serde {
                 E: Error,
             {
                 match core::str::from_utf8(v) {
-                    Ok(s) => Ok(Str24::from(s)),
+                    Ok(s) => Ok(Str16::from(s)),
                     Err(_) => Err(Error::invalid_value(Unexpected::Bytes(v), &self)),
                 }
             }
@@ -403,7 +403,7 @@ mod serde {
                 E: Error,
             {
                 match core::str::from_utf8(v) {
-                    Ok(s) => Ok(Str24::from(s)),
+                    Ok(s) => Ok(Str16::from(s)),
                     Err(_) => Err(Error::invalid_value(Unexpected::Bytes(v), &self)),
                 }
             }
@@ -413,7 +413,7 @@ mod serde {
                 E: Error,
             {
                 match String::from_utf8(v) {
-                    Ok(s) => Ok(Str24::from(s)),
+                    Ok(s) => Ok(Str16::from(s)),
                     Err(e) => Err(Error::invalid_value(
                         Unexpected::Bytes(&e.into_bytes()),
                         &self,
@@ -422,10 +422,10 @@ mod serde {
             }
         }
 
-        deserializer.deserialize_str(Str24Visitor)
+        deserializer.deserialize_str(Str16Visitor)
     }
 
-    impl serde::Serialize for Str24 {
+    impl serde::Serialize for Str16 {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer,
@@ -434,12 +434,12 @@ mod serde {
         }
     }
 
-    impl<'de> serde::Deserialize<'de> for Str24 {
+    impl<'de> serde::Deserialize<'de> for Str16 {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
             D: serde::Deserializer<'de>,
         {
-            str24(deserializer)
+            str16(deserializer)
         }
     }
 }

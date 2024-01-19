@@ -81,17 +81,12 @@ impl Buf24 {
             Self::new_inline(input)
         } else {
             let arc = Arc::from(input);
-            Self::from_arc(arc)
+            Self::from_arc(len, arc)
         }
     }
 
     #[inline]
-    pub(crate) fn from_arc(arc: Arc<[u8]>) -> Self {
-        let len = arc.len();
-        if len <= INLINE_CAP {
-            return Self::new_inline(&arc);
-        }
-
+    pub(crate) fn from_arc(len: usize, arc: Arc<[u8]>) -> Self {
         let ptr = Arc::into_raw(arc) as *const u8 as usize as u64;
         let tag = unsafe { NonZeroU8::new_unchecked(TAG_ARC) };
         Self(Buf24Inner {
