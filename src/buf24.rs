@@ -1,7 +1,6 @@
 use alloc::sync::Arc;
 use core::num::NonZeroU8;
-use core::slice;
-use core::{mem, ops};
+use core::{mem, ops, ptr, slice};
 
 #[repr(transparent)]
 pub struct Buf24(Buf24Inner);
@@ -12,35 +11,31 @@ const PADDING_BYTES: usize = 7;
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]
 struct Buf24Inner {
-    tag: NonZeroU8,
-    _padding: [u8; PADDING_BYTES],
     ptr: u64,
     len: u64,
+    _padding: [u8; PADDING_BYTES],
+    tag: NonZeroU8,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct Buf24Inline {
-    tag_and_len: u8,
     buf: [u8; INLINE_CAP],
+    tag_and_len: u8,
 }
 
 const _: () = {
     assert!(mem::size_of::<Buf24>() == 24);
+    assert!(mem::align_of::<Buf24>() == 8);
     assert!(mem::size_of::<Option<Buf24>>() == 24);
 
     assert!(mem::size_of::<Buf24Inline>() == mem::size_of::<Buf24Inner>());
 };
 
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Tag {
-    Inline = 0b001,
-    Arc = 0b010,
-    Static = 0b100,
-}
-const TAG_SHIFT: usize = 3;
-const TAG_MASK: u8 = 0b111;
+const TAG_INLINE: u8 = 0b001 << 5;
+const TAG_ARC: u8 = 0b010 << 5;
+const TAG_STATIC: u8 = 0b100 << 5;
+const TAG_MASK: u8 = !(0b111 << 5);
 
 impl Buf24 {
     /// Constructs inline variant of `Buf24`.
@@ -59,8 +54,8 @@ impl Buf24 {
             i += 1
         }
 
-        let tag_and_len = ((len as u8) << TAG_SHIFT) | Tag::Inline as u8;
-        unsafe { mem::transmute(Buf24Inline { tag_and_len, buf }) }
+        let tag_and_len = len as u8 | TAG_INLINE;
+        unsafe { mem::transmute(Buf24Inline { buf, tag_and_len }) }
     }
 
     #[inline]
@@ -70,12 +65,12 @@ impl Buf24 {
             Self::new_inline(input)
         } else {
             let ptr = input.as_ptr() as usize as u64;
-            let tag = unsafe { NonZeroU8::new_unchecked(Tag::Static as u8) };
+            let tag = unsafe { NonZeroU8::new_unchecked(TAG_STATIC) };
             Self(Buf24Inner {
-                tag,
-                _padding: [0; PADDING_BYTES],
                 ptr,
                 len: len as u64,
+                _padding: [0; PADDING_BYTES],
+                tag,
             })
         }
     }
@@ -98,35 +93,36 @@ impl Buf24 {
         }
 
         let ptr = Arc::into_raw(arc) as *const u8 as usize as u64;
-        let tag = unsafe { NonZeroU8::new_unchecked(Tag::Arc as u8) };
+        let tag = unsafe { NonZeroU8::new_unchecked(TAG_ARC) };
         Self(Buf24Inner {
-            tag,
-            _padding: [0; PADDING_BYTES],
             ptr,
             len: len as u64,
+            _padding: [0; PADDING_BYTES],
+            tag,
         })
     }
 
     #[inline]
     pub(crate) fn as_arc(&self) -> Option<Arc<[u8]>> {
-        if self.tag() != Tag::Arc {
+        if self.tag_byte() & TAG_ARC == 0 {
             return None;
         }
 
-        let arc_ptr = self.as_bytes() as *const [u8];
-
+        let (ptr, len) = (self.0.ptr as usize as *const u8, self.0.len as usize);
+        let arc_ptr = ptr::slice_from_raw_parts(ptr, len);
         Some(unsafe { Arc::from_raw(arc_ptr) })
     }
 
     #[inline(always)]
-    fn tag(&self) -> Tag {
-        unsafe { mem::transmute(self.0.tag.get() & TAG_MASK) }
+    fn tag_byte(&self) -> u8 {
+        unsafe { mem::transmute::<_, &Buf24Inline>(self) }.tag_and_len
     }
 
     #[inline(always)]
     pub fn len(&self) -> usize {
-        if self.tag() == Tag::Inline {
-            (self.0.tag.get() >> TAG_SHIFT) as usize
+        let tag_byte = self.tag_byte();
+        if tag_byte & TAG_INLINE > 0 {
+            (tag_byte & TAG_MASK) as usize
         } else {
             self.0.len as usize
         }
@@ -134,7 +130,7 @@ impl Buf24 {
 
     #[inline(always)]
     pub fn is_heap_allocated(&self) -> bool {
-        self.tag() == Tag::Arc
+        self.tag_byte() & TAG_ARC > 0
     }
 
     #[inline(always)]
@@ -144,15 +140,16 @@ impl Buf24 {
 
     #[inline(always)]
     pub fn as_bytes(&self) -> &[u8] {
-        let len = self.len();
-
-        if self.tag() == Tag::Inline {
-            let inline: &Buf24Inline = unsafe { mem::transmute(self) };
-            return unsafe { inline.buf.get_unchecked(..len) };
-        }
-
-        let data = self.0.ptr as usize as *const u8;
-        unsafe { slice::from_raw_parts(data, len) }
+        let tag_byte = self.tag_byte();
+        let (ptr, len) = if tag_byte & TAG_INLINE > 0 {
+            (
+                self as *const _ as *const u8,
+                (tag_byte & TAG_MASK) as usize,
+            )
+        } else {
+            (self.0.ptr as usize as *const u8, self.0.len as usize)
+        };
+        unsafe { slice::from_raw_parts(ptr, len) }
     }
 }
 

@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::num::{NonZeroU64, NonZeroU8};
+use core::num::NonZeroU64;
 use core::slice;
 use core::{mem, ops};
 
