@@ -75,15 +75,20 @@ impl Buf24 {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn new(input: &[u8]) -> Self {
         let len = input.len();
         if len <= INLINE_CAP {
             Self::new_inline(input)
         } else {
-            let arc = Arc::from(input);
-            Self::from_arc(len, arc)
+            Self::new_arc(input)
         }
+    }
+
+    #[cold]
+    fn new_arc(input: &[u8]) -> Self {
+        let arc = Arc::from(input);
+        Self::from_arc(input.len(), arc)
     }
 
     #[inline]
