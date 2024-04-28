@@ -41,6 +41,7 @@ impl Str24 {
         Self(Buf24::new_static(text.as_bytes()))
     }
 
+    #[inline]
     pub fn new<T>(text: T) -> Str24
     where
         T: AsRef<str>,

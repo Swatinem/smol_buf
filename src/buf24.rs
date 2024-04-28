@@ -75,6 +75,7 @@ impl Buf24 {
         }
     }
 
+    #[inline]
     pub fn new(input: &[u8]) -> Self {
         let len = input.len();
         if len <= INLINE_CAP {
