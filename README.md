@@ -1,26 +1,21 @@
-# smol_str
+# smol_buf
 
-[![CI](https://github.com/rust-analyzer/smol_str/workflows/CI/badge.svg)](https://github.com/rust-analyzer/smol_str/actions?query=branch%3Amaster+workflow%3ACI)
-[![Crates.io](https://img.shields.io/crates/v/smol_str.svg)](https://crates.io/crates/smol_str)
-[![API reference](https://docs.rs/smol_str/badge.svg)](https://docs.rs/smol_str/)
+[![CI](https://github.com/Swatinem/smol_buf/workflows/CI/badge.svg)](https://github.com/Swatinem/smol_buf/actions?query=branch%3Amaster+workflow%3ACI)
+[![Crates.io](https://img.shields.io/crates/v/smol_buf.svg)](https://crates.io/crates/smol_buf)
+[![API reference](https://docs.rs/smol_buf/badge.svg)](https://docs.rs/smol_buf/)
 
+The `smol_buf` crate offers the following types, each offering inline stack-allocated storage,
+and falling back to heap-allocation otherwise.
 
-A `SmolStr` is a string type that has the following properties:
+| ty      | Deref Target | `size_of::<T>` | `size_of::<Option<T>>` | inline bytes | Clone  |
+| ------- | ------------ | -------------- | ---------------------- | ------------ | ------ |
+| `Str24` | `&str`       | 24             | 24                     | 23           | `O(1)` |
+| `Str16` | `&str`       | 16             | 16                     | 15           | `O(1)` |
+| `Buf24` | `&[u8]`      | 24             | 24                     | 23           | `O(1)` |
+| `Buf16` | `&[u8]`      | 16             | 16                     | 15           | `O(1)` |
 
-* `size_of::<SmolStr>() == 24` (therefore `== size_of::<String>()` on 64 bit platforms)
-* `Clone` is `O(1)`
-* Strings are stack-allocated if they are:
-    * Up to 23 bytes long
-    * Longer than 23 bytes, but substrings of `WS` (see `src/lib.rs`). Such strings consist
-    solely of consecutive newlines, followed by consecutive spaces
-* If a string does not satisfy the aforementioned conditions, it is heap-allocated
-* Additionally, a `SmolStr` can be explicitly created from a `&'static str` without allocation
-
-Unlike `String`, however, `SmolStr` is immutable. The primary use case for
-`SmolStr` is a good enough default storage for tokens of typical programming
-languages. Strings consisting of a series of newlines, followed by a series of
-whitespace are a typical pattern in computer programs because of indentation.
-Note that a specialized interner might be a better solution for some use cases.
+Unlike `String` and `Vec`, however, the types are immutable.
+They are thus replacements for `Arc<str>` and `Arc<[u8]>` respectively.
 
 ## MSRV Policy
 
