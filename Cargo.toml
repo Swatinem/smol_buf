@@ -19,3 +19,4 @@ serde = { version = "1.0.136", features = ["derive"] }
 [features]
 default = ["std"]
 std = ["serde?/std"]
+intern = ["std"]
