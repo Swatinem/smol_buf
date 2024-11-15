@@ -2,6 +2,9 @@ use alloc::sync::Arc;
 use core::num::NonZeroU64;
 use core::{mem, ops, ptr, slice};
 
+/// A small-data optimized byte buffer.
+///
+/// See [`Str16`](crate::Str16) for all the properties.
 #[repr(transparent)]
 pub struct Buf16(Buf16Inner);
 

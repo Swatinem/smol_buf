@@ -2,6 +2,9 @@ use alloc::sync::Arc;
 use core::num::NonZeroU8;
 use core::{mem, ops, ptr, slice};
 
+/// A small-data optimized byte buffer.
+///
+/// See [`Str24`](crate::Str24) for all the properties.
 #[repr(transparent)]
 pub struct Buf24(Buf24Inner);
 
