@@ -1,6 +1,6 @@
 [package]
 name = "smol_buf"
-version = "0.1.0"
+version = "0.1.1"
 description = "small-string optimized string / buffer type with O(1) clone"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Swatinem/smol_buf"
