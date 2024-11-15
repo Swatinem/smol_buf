@@ -81,7 +81,9 @@ impl Str16 {
         if len <= INLINE_CAP {
             Self::new_inline(&arc)
         } else {
-            Self(Buf16::from_arc(len, unsafe { mem::transmute(arc) }))
+            Self(Buf16::from_arc(len, unsafe {
+                mem::transmute::<Arc<str>, Arc<[u8]>>(arc)
+            }))
         }
     }
 
@@ -306,7 +308,7 @@ impl From<Str16> for Arc<str> {
     fn from(text: Str16) -> Self {
         if let Some(arc) = text.0.as_arc() {
             mem::forget(text);
-            return unsafe { mem::transmute(arc) };
+            return unsafe { mem::transmute::<Arc<[u8]>, Arc<str>>(arc) };
         }
         Arc::from(text.as_str())
     }

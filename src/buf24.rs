@@ -116,7 +116,7 @@ impl Buf24 {
 
     #[inline(always)]
     fn tag_byte(&self) -> u8 {
-        unsafe { mem::transmute::<_, &Buf24Inline>(self) }.tag_and_len
+        unsafe { mem::transmute::<&Buf24, &Buf24Inline>(self) }.tag_and_len
     }
 
     #[inline(always)]
